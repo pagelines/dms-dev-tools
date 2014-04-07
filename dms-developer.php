@@ -1,6 +1,11 @@
 <?php
 /*
- * Plugin Name: Dms Developer Tools
+Plugin Name: Dms Developer Tools
+Plugin URI: http://www.pagelines.com/
+Description: Developer only tools for DMS2
+Version: 0.1
+Author: PageLines
+PageLines: true
  */
 class PLDeveloperToolsPlugin {
 
