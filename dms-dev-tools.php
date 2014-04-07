@@ -20,6 +20,16 @@ class PLDeveloperToolsPlugin {
 		// if we are not in DMS, ot pre 2.0.3 bomb out.
 		if( ! class_exists( 'EditorInterface' ) || class_exists( 'PLDeveloperTools' ) )
 			return false;
+		
+		$ver = PL_CORE_VERSION;
+		
+		if( version_compare( $ver, '2.0.3', '<' ) ) {
+			add_action( 'admin_notices', array( $this, 'need_update' ) );
+			return;
+		}
+		
+		if( ! defined( 'PL_DEV' ) )
+			define( 'PL_DEV', true );
 		// Add tab to toolbar
 		add_filter('pl_toolbar_config', array( $this, 'toolbar'));
 
@@ -32,6 +42,15 @@ class PLDeveloperToolsPlugin {
 
 		global $pl_perform;
 		$pl_perform = array();
+	}
+	
+	function need_update() {
+		?>
+		<div class="updated">
+			<p>The DMS Developer Tools require at least version 2.0.3 of DMS to function.
+			</p>
+			</div>
+			<?php	
 	}
 
 	function get_sections() {
