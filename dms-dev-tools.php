@@ -28,8 +28,6 @@ class PLDeveloperToolsPlugin {
 			return;
 		}
 		
-		if( ! defined( 'PL_DEV' ) )
-			define( 'PL_DEV', true );
 		// Add tab to toolbar
 		add_filter('pl_toolbar_config', array( $this, 'toolbar'));
 
@@ -343,4 +341,6 @@ class PLDeveloperToolsPlugin {
 		return sprintf( '<br />To remote purge all caches and update the js/css cache number use this url: <a href="%s">link</a>', $link );
 	}
 }
+if( ! defined( 'PL_DEV' ) )
+	define( 'PL_DEV', true );
 new PLDeveloperToolsPlugin;
