@@ -40,6 +40,120 @@ class PLDeveloperToolsPlugin {
 
 		global $pl_perform;
 		$pl_perform = array();
+		
+		add_action('after_pl_up_image', array( $this, 'custom_upload_action' ), 10, 2 );
+		
+	}
+	
+	function custom_upload_action( $ID, $meta ){
+		
+		$path = get_attached_file( $ID );
+		
+		if( pl_setting( 'kraken_api_key' ) && pl_setting( 'kraken_secret_key' ) ) {
+			$this->kraken($path);
+			return false;
+		}
+			
+		
+		if( pl_setting( 'tinypng_api_key' ) ) {
+			$this->tinypng($path);
+			return false;
+		}
+			
+		
+		return false;
+		
+		// folowing code loops through all sizes, might implement later...
+		$paths = array();
+
+		$sizes = pl_get_image_sizes();
+		$uploads = wp_upload_dir();
+
+		foreach( $sizes as $size ) {
+			
+			$image = wp_get_attachment_image_src( $ID, $size );
+			$image = str_replace( $uploads['baseurl'], $uploads['basedir'], $image[0] );
+			$paths[$size] = $image;
+		}
+
+		
+		foreach( $paths as $size => $path )
+			$this->tinypng($path);
+	}
+	
+	function tinypng( $path ) {
+		
+		$attachment_file_path 	= $path;
+		
+		if ( !function_exists( 'download_url' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		}
+		
+		$key = pl_setting( 'tinypng_api_key' );
+
+		$request = curl_init();
+		curl_setopt_array($request, array(
+		  CURLOPT_URL => "https://api.tinypng.com/shrink",
+		  CURLOPT_USERPWD => "api:" . $key,
+		  CURLOPT_POSTFIELDS => file_get_contents($attachment_file_path),
+		  CURLOPT_BINARYTRANSFER => true,
+		  CURLOPT_RETURNTRANSFER => true,
+		  CURLOPT_HEADER => true,
+		  /* Uncomment below if you have trouble validating our SSL certificate.
+		     Download cacert.pem from: http://curl.haxx.se/ca/cacert.pem */
+		  // CURLOPT_CAINFO => __DIR__ . "/cacert.pem",
+		  CURLOPT_SSL_VERIFYPEER => true
+		));
+
+		$response = curl_exec($request);
+		if (curl_getinfo($request, CURLINFO_HTTP_CODE) === 201) {
+		  /* Compression was successful, retrieve output from Location header. */
+		  $headers = substr($response, 0, curl_getinfo($request, CURLINFO_HEADER_SIZE));
+		  foreach (explode("\r\n", $headers) as $header) {
+		    if (substr($header, 0, 10) === "Location: ") {
+		      $request = curl_init();
+		      curl_setopt_array($request, array(
+		        CURLOPT_URL => substr($header, 10),
+		        CURLOPT_RETURNTRANSFER => true,
+		        /* Uncomment below if you have trouble validating our SSL certificate. */
+		        // CURLOPT_CAINFO => __DIR__ . "/cacert.pem",
+		        CURLOPT_SSL_VERIFYPEER => true
+		      ));
+		      file_put_contents($attachment_file_path, curl_exec($request));
+		    }
+		  }
+		} else {
+			//failed...
+		}
+	}
+	
+	function kraken( $path ) {
+		
+		$attachment_file_path 	= $path;
+		
+		$key = pl_setting( 'kraken_api_key' );
+		$secret = pl_setting( 'kraken_secret_key' );
+		$lossy = ( pl_setting( 'kraken_api_lossy') ) ? true : false;
+
+		require_once("Kraken.php");
+
+		$kraken = new Kraken($key, $secret);
+
+		$params = array(
+		    "file" => $path,
+		    "wait" => true,
+			"lossy" => $lossy,
+		);
+
+		$data = $kraken->upload($params);
+
+		if ($data["success"]) {
+			$get = wp_remote_get( $data["kraked_url"] );			
+			$request = wp_remote_get( $data["kraked_url"] );
+			file_put_contents($attachment_file_path, wp_remote_retrieve_body($request));
+		} else {
+		    return false;
+		}
 	}
 	
 	function need_update() {
@@ -285,8 +399,42 @@ class PLDeveloperToolsPlugin {
 
 			$settings = array(
 				array(
-					'key'		=> 'less_dev_mode',
+					'key'		=> 'images_opts',
 					'col'		=> 1,
+					'type' 		=> 'multi',
+					'title' 	=> __( 'Image Optimisations', 'pagelines' ),
+					'ref'		=> 'When enabled DMS will pass any image you use with the DMS editor to TintPNG/Kraken and then use the reduced sized image.<br />If both are enabled Kraken will be used as it supports more formats.<br />Only the main full size image is reduced at this time.',
+					'opts'		=> array(
+						array(
+							'key'	=> 'kraken_api_key',
+							'type'	=> 'text',
+							'label'	=> 'Kraken.io API Key',
+							'help'	=> ''
+						),
+						array(
+							'key'	=> 'kraken_secret_key',
+							'type'	=> 'text',
+							'label'	=> 'Kraken.io Secret Key',
+							'help'	=> 'Kraken is a robust, ultra-fast image optimizer. Thanks to its vast array of optimization algorithms Kraken is a world ahead of other tools. Want to save bandwidth and improve your website’s load times? Look no further and welcome to Kraken!<br /><strong>Kraken supports JPEG, PNG and GIF files.</strong>'
+						),
+						array(
+							'key'	=> 'kraken_api_lossy',
+							'type'	=> 'check',
+							'default' => false,
+							'label'	=> 'Enable lossless compression (even smaller files)',
+						),
+						array(
+							'key'	=> 'tinypng_api_key',
+							'type'	=> 'text',
+							'label'	=> 'TinyPNG API Key',
+							'help'	=> 'TinyPNG uses smart lossy compression techniques to reduce the file size of your PNG files.<br />Registration for a key is free, just click here: <a target="_blank" href="https://tinypng.com/developers">Get a free key now</a><br /><strong>TinyPNG supports PNG files.</strong>'
+						)
+						
+					)
+				),
+				array(
+					'key'		=> 'less_dev_mode',
+					'col'		=> 2,
 					'type' 		=> 'check',
 					'label' 	=> __( 'Enable LESS dev mode', 'pagelines' ),
 					'title' 	=> __( 'LESS Developer Mode', 'pagelines' ),
@@ -294,7 +442,7 @@ class PLDeveloperToolsPlugin {
 				),
 				array(
 					'key'		=> 'no_cache_mode',
-					'col'		=> 2,
+					'col'		=> 3,
 					'type' 		=> 'check',
 					'label' 	=> __( 'Enable no cache mode', 'pagelines' ),
 					'title' 	=> __( 'No Cache Mode', 'pagelines' ),
