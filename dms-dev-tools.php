@@ -421,7 +421,7 @@ class PLDeveloperToolsPlugin {
 							'key'	=> 'kraken_api_lossy',
 							'type'	=> 'check',
 							'default' => false,
-							'label'	=> 'Enable lossless compression (even smaller files)',
+							'label'	=> 'Enable lossy compression (even smaller files, unnoticeable difference)',
 						),
 						array(
 							'key'	=> 'tinypng_api_key',
