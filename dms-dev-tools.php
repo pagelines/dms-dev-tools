@@ -3,7 +3,7 @@
 Plugin Name: Dms Developer Tools
 Plugin URI: http://www.pagelines.com/
 Description: Developer only tools for DMS2
-Version: 0.1
+Version: 0.2
 Author: PageLines
 PageLines: true
  */
@@ -403,7 +403,7 @@ class PLDeveloperToolsPlugin {
 					'col'		=> 1,
 					'type' 		=> 'multi',
 					'title' 	=> __( 'Image Optimisations', 'pagelines' ),
-					'ref'		=> 'When enabled DMS will pass any image you use with the DMS editor to TintPNG/Kraken and then use the reduced sized image.<br />If both are enabled Kraken will be used as it supports more formats.<br />Only the main full size image is reduced at this time.',
+					'ref'		=> 'When enabled DMS will pass any image you use with the DMS editor to TintPNG/Kraken and then use the reduced sized image.<br />If both are enabled Kraken will be used as it supports more formats.<br />Only the main full size image is reduced at this time.<strong>DMS 2.1 Required</strong>',
 					'opts'		=> array(
 						array(
 							'key'	=> 'kraken_api_key',
